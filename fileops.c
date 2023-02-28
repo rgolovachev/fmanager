@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+enum { EPS = 32 };
+
 int RemoveDirectory(const char *path) {
   DIR *dir = opendir(path);
   if (!dir) {
@@ -118,5 +120,12 @@ void FillToCb(struct CBItem *cb, struct dirent *ent, char *buf, int type) {
     memcpy(cb->filename, ent->d_name, PATH_MAX);
     cb->id = ent->d_ino;
     cb->has_val = type; // 1 if cut op, 2 if copy op
+    size_t len = strlen(buf) + EPS;
+    char *cmd = calloc(len, sizeof(char));
+    if (cmd) {
+      snprintf(cmd, len, "echo %s | xsel -i -b", buf);
+      system(cmd);
+      free(cmd);
+    }
   }
 }
