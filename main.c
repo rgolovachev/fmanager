@@ -149,18 +149,43 @@ int main(void) {
           start = 0;
         }
       } else {
-        // вот здесь надо ошибки обработать
-        void *handle = dlopen("../lib/libshared.so", RTLD_LAZY);
+        DIR *stdir = opendir(".");
+        if (!stdir) {
+          DrawStatus(rows, cols,
+                     "ERROR: Can't load library. Press any key to continue...");
+          getch();
+          break;
+        }
 
+        struct dirent *stdir_ent;
+        void *handle = NULL;
+        while ((stdir_ent = readdir(stdir))) {
+          const char *ext = strrchr(stdir_ent->d_name, '.');
+          if (!ext || *(ext + 1) == 0) {
+            continue;
+          }
+          ++ext;
+          if (strcmp(ext, "so") == 0) {
+            char lib_path[PATH_MAX] = "./";
+            strcat(lib_path, stdir_ent->d_name);
+
+            handle = dlopen(lib_path, RTLD_LAZY);
+            if (handle) {
+              break;
+            }
+          }
+        }
+        closedir(stdir);
         if (!handle) {
           DrawStatus(rows, cols,
-                     "ERROR: Can't find library. Press any key to continue...");
+                     "ERROR: Can't load library. Press any key to continue...");
           getch();
           break;
         }
 
         int (*can_run)(const char *) = dlsym(handle, "can_run");
         if (!can_run) {
+          dlclose(handle);
           DrawStatus(rows, cols,
                      "ERROR: Can't load symbols. Press any key to continue...");
           getch();
@@ -169,6 +194,7 @@ int main(void) {
 
         int (*run)(const char *, const char *) = dlsym(handle, "run");
         if (!run) {
+          dlclose(handle);
           DrawStatus(rows, cols,
                      "ERROR: Can't load symbols. Press any key to continue...");
           getch();
@@ -189,6 +215,7 @@ int main(void) {
           }
           InitScreen();
         }
+        dlclose(handle);
       }
       break;
     case PUSH_DELETE:
