@@ -159,6 +159,9 @@ int main(void) {
 
         struct dirent *stdir_ent;
         void *handle = NULL;
+        int (*can_run)(const char *) = NULL;
+        int (*run)(const char *, const char *) = NULL;
+        char found = 0;
         while ((stdir_ent = readdir(stdir))) {
           const char *ext = strrchr(stdir_ent->d_name, '.');
           if (!ext || *(ext + 1) == 0) {
@@ -170,33 +173,26 @@ int main(void) {
             strcat(lib_path, stdir_ent->d_name);
 
             handle = dlopen(lib_path, RTLD_LAZY);
-            if (handle) {
-              break;
+            if (!handle) {
+              continue;
             }
+            can_run = dlsym(handle, "can_run");
+            if (!can_run) {
+              continue;
+            }
+            run = dlsym(handle, "run");
+            if (!run) {
+              continue;
+            }
+            found = 1;
+            break;
           }
         }
         closedir(stdir);
-        if (!handle) {
+
+        if (!found) {
           DrawStatus(rows, cols,
                      "ERROR: Can't load library. Press any key to continue...");
-          getch();
-          break;
-        }
-
-        int (*can_run)(const char *) = dlsym(handle, "can_run");
-        if (!can_run) {
-          dlclose(handle);
-          DrawStatus(rows, cols,
-                     "ERROR: Can't load symbols. Press any key to continue...");
-          getch();
-          break;
-        }
-
-        int (*run)(const char *, const char *) = dlsym(handle, "run");
-        if (!run) {
-          dlclose(handle);
-          DrawStatus(rows, cols,
-                     "ERROR: Can't load symbols. Press any key to continue...");
           getch();
           break;
         }
