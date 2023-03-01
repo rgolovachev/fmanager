@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 
 project(shared)
 
-### тут можно выбрать любой файл (например another.c)
+### тут можно выбрать любой файл (например anotherlib.c)
 set(SRC_LIST exec.c)
 ###
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
